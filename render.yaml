@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: daily-mafia-server
+    runtime: node
+    rootDir: game_server
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
