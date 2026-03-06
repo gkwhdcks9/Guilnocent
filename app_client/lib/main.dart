@@ -1989,9 +1989,13 @@ class _GameHomePageState extends State<GameHomePage> {
       bottomNavigationBar: _creatorFooter(context),
       appBar: AppBar(
         centerTitle: false,
-        title: Text(
-          'GUILNOCENT',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        title: SizedBox(
+          height: 34,
+          child: Image.asset(
+            'image/Moral_Roulette_icon.png',
+            fit: BoxFit.contain,
+            alignment: Alignment.centerLeft,
+          ),
         ),
         actions: [
           if (_inRoom)

@@ -998,8 +998,12 @@ function resolveVotingAndAdvance(room) {
   room.game.lastVoteResult = `처형 후보: ${candidateName}`;
   broadcastChat(room, {
     system: true,
-    message: `처형 투표 결과 ${candidateName}님이 후보로 선정되었습니다. 찬반 투표를 진행합니다.`,
+    message: "",
     imageAsset: "execution.png",
+  });
+  broadcastChat(room, {
+    system: true,
+    message: `처형 투표 결과 ${candidateName}님이 후보로 선정되었습니다. 찬반 투표를 진행합니다.`,
   });
   startExecutionVotePhase(room, candidateId);
 }
