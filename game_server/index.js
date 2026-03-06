@@ -24,6 +24,7 @@ const ALLOWED_EMOJIS = new Set(["😀", "😂", "😱", "🤔", "😡", "😭", 
 const MODE_ORIGINAL = "original";
 const MODE_MORAL_ROULETTE = "moral_roulette";
 const RULES_VERSION = "2026.03.06-rules-1";
+const PRIVATE_DANGER_PREFIX = "[!DANGER!] ";
 
 function defaultRoleCounts(mode) {
   if (mode === MODE_ORIGINAL) {
@@ -217,7 +218,7 @@ function broadcastRoomUpdate(room) {
   }
 }
 
-function broadcastChat(room, { fromId = null, fromName = "SYSTEM", message, system = false, centerNotice = false, isEmoji = false }) {
+function broadcastChat(room, { fromId = null, fromName = "SYSTEM", message, system = false, centerNotice = false, isEmoji = false, imageAsset = null, highlightDanger = false }) {
   const payload = {
     type: "chat",
     chat: {
@@ -227,6 +228,8 @@ function broadcastChat(room, { fromId = null, fromName = "SYSTEM", message, syst
       system,
       centerNotice,
       isEmoji,
+      imageAsset,
+      highlightDanger,
       ts: Date.now(),
     },
   };
@@ -238,7 +241,7 @@ function broadcastChat(room, { fromId = null, fromName = "SYSTEM", message, syst
   }
 }
 
-function broadcastChatTo(room, playerIds, { fromId = null, fromName = "SYSTEM", message, system = false, centerNotice = false, isEmoji = false }) {
+function broadcastChatTo(room, playerIds, { fromId = null, fromName = "SYSTEM", message, system = false, centerNotice = false, isEmoji = false, imageAsset = null, highlightDanger = false }) {
   const payload = {
     type: "chat",
     chat: {
@@ -248,6 +251,8 @@ function broadcastChatTo(room, playerIds, { fromId = null, fromName = "SYSTEM", 
       system,
       centerNotice,
       isEmoji,
+      imageAsset,
+      highlightDanger,
       ts: Date.now(),
     },
   };
@@ -259,13 +264,33 @@ function broadcastChatTo(room, playerIds, { fromId = null, fromName = "SYSTEM", 
   }
 }
 
-function sendPrivate(playerId, message, day = null) {
+function sendPrivate(playerId, message, day = null, options = {}) {
+  const player = players.get(playerId);
+  if (!player) return;
+  const payloadMessage = options.danger ? `${PRIVATE_DANGER_PREFIX}${message}` : message;
+  safeSend(player.ws, {
+    type: "ability_log",
+    message: payloadMessage,
+    day,
+  });
+}
+
+function sendPrivateSystemChat(playerId, { message, imageAsset = null, highlightDanger = false }) {
   const player = players.get(playerId);
   if (!player) return;
   safeSend(player.ws, {
-    type: "ability_log",
-    message,
-    day,
+    type: "chat",
+    chat: {
+      fromId: null,
+      fromName: "SYSTEM",
+      message,
+      system: true,
+      centerNotice: false,
+      isEmoji: false,
+      imageAsset,
+      highlightDanger,
+      ts: Date.now(),
+    },
   });
 }
 
@@ -694,6 +719,7 @@ function resolveNightAbilities(room) {
     broadcastChat(room, {
       system: true,
       message: `밤 능력 결과: ${targetName}님이 의사의 치료로 생존했습니다.`,
+      imageAsset: "doctor_success.png",
     });
     return;
   }
@@ -703,6 +729,7 @@ function resolveNightAbilities(room) {
   broadcastChat(room, {
     system: true,
     message: `밤 능력 결과: ${targetName}님이 탈락했습니다.`,
+    imageAsset: "mafia.png",
   });
 }
 
@@ -953,6 +980,7 @@ function resolveVotingAndAdvance(room) {
   broadcastChat(room, {
     system: true,
     message: `처형 투표 결과 ${candidateName}님이 후보로 선정되었습니다. 찬반 투표를 진행합니다.`,
+    imageAsset: "execution.png",
   });
   startExecutionVotePhase(room, candidateId);
 }
@@ -1504,6 +1532,20 @@ wss.on("connection", (ws) => {
         centerNotice: true,
         message: `${voterName}님이 투표를 완료했습니다.`,
       });
+      sendPrivate(
+        player.id,
+        targetId
+          ? `투표 완료: ${players.get(targetId)?.name || targetId}님에게 투표했습니다.`
+          : "투표 완료: 기권 투표를 선택했습니다.",
+        room.game.day,
+        { danger: true }
+      );
+      sendPrivateSystemChat(player.id, {
+        message: targetId
+          ? `투표 완료: ${players.get(targetId)?.name || targetId}님에게 투표했습니다.`
+          : "투표 완료: 기권 투표를 선택했습니다.",
+        highlightDanger: true,
+      });
 
       const aliveIds = alivePlayerIds(room);
       const votedCount = aliveIds.filter((id) => Object.prototype.hasOwnProperty.call(room.game.votes, id)).length;
@@ -1544,6 +1586,16 @@ wss.on("connection", (ws) => {
       }
 
       room.game.executionVotes[player.id] = approve;
+      sendPrivate(
+        player.id,
+        `처형 찬반 투표 완료: ${approve ? "찬성" : "반대"}을 선택했습니다.`,
+        room.game.day,
+        { danger: true }
+      );
+      sendPrivateSystemChat(player.id, {
+        message: `처형 찬반 투표 완료: ${approve ? "찬성" : "반대"}을 선택했습니다.`,
+        highlightDanger: true,
+      });
 
       const aliveIds = alivePlayerIds(room);
       const votedCount = aliveIds.filter((id) => Object.prototype.hasOwnProperty.call(room.game.executionVotes, id)).length;
@@ -1604,6 +1656,16 @@ wss.on("connection", (ws) => {
         centerNotice: true,
         message: `${player.name}님이 ${shouldContinue ? "계속 진행" : "스톱"}을 선택했습니다.`,
       });
+      sendPrivate(
+        player.id,
+        `마피아 진행 선택 완료: ${shouldContinue ? "계속 진행" : "스톱"}을 선택했습니다.`,
+        room.game.day,
+        { danger: true }
+      );
+      sendPrivateSystemChat(player.id, {
+        message: `마피아 진행 선택 완료: ${shouldContinue ? "계속 진행" : "스톱"}을 선택했습니다.`,
+        highlightDanger: true,
+      });
 
       const aliveMafia = aliveMafiaIds(room);
       const votedCount = aliveMafia.filter((id) => Object.prototype.hasOwnProperty.call(room.game.mafiaDecisionVotes, id)).length;
@@ -1663,7 +1725,12 @@ wss.on("connection", (ws) => {
             : apparentRole === "police"
               ? "경찰"
               : "시민";
-        sendPrivate(player.id, `${targetName}님의 직업 조사 결과: ${apparentLabel}`, room.game.day);
+        sendPrivate(player.id, `${targetName}님의 직업 조사 결과: ${apparentLabel}`, room.game.day, { danger: true });
+        sendPrivateSystemChat(player.id, {
+          message: `${targetName}님의 직업 조사 결과: ${apparentLabel}`,
+          imageAsset: "police.png",
+          highlightDanger: apparentRole === "mafia",
+        });
         room.game.abilityUsed[player.id] = true;
         return;
       }
@@ -1685,7 +1752,11 @@ wss.on("connection", (ws) => {
         const targetName = players.get(targetId)?.name || targetId;
         room.game.pendingKillTargetId = targetId;
         room.game.abilityUsed[player.id] = true;
-        sendPrivate(player.id, `${targetName}님을 밤 탈락 대상으로 지정했습니다.`, room.game.day);
+        sendPrivate(player.id, `${targetName}님을 밤 탈락 대상으로 지정했습니다.`, room.game.day, { danger: true });
+        sendPrivateSystemChat(player.id, {
+          message: `${targetName}님을 밤 탈락 대상으로 지정했습니다.`,
+          highlightDanger: true,
+        });
         return;
       }
 
@@ -1707,7 +1778,11 @@ wss.on("connection", (ws) => {
         room.game.pendingHealTargetId = targetId;
         room.game.abilityUsed[player.id] = true;
         markSelfHealIfNeeded(room, player.id, targetId);
-        sendPrivate(player.id, `${targetName}님을 치료 대상으로 지정했습니다.`, room.game.day);
+        sendPrivate(player.id, `${targetName}님을 치료 대상으로 지정했습니다.`, room.game.day, { danger: true });
+        sendPrivateSystemChat(player.id, {
+          message: `${targetName}님을 치료 대상으로 지정했습니다.`,
+          highlightDanger: true,
+        });
         return;
       }
 
@@ -1725,7 +1800,11 @@ wss.on("connection", (ws) => {
         const fakeRole = room.game.jokerMaskRoles[player.id] || "citizen";
         if (fakeRole === "mafia") {
           room.game.abilityUsed[player.id] = true;
-          sendPrivate(player.id, `${targetName}님을 밤 탈락 대상으로 지정했습니다. (조커: 실제 효과 없음)`, room.game.day);
+          sendPrivate(player.id, `${targetName}님을 밤 탈락 대상으로 지정했습니다. (조커: 실제 효과 없음)`, room.game.day, { danger: true });
+          sendPrivateSystemChat(player.id, {
+            message: `${targetName}님을 밤 탈락 대상으로 지정했습니다. (조커: 실제 효과 없음)`,
+            highlightDanger: true,
+          });
           return;
         }
         if (fakeRole === "doctor") {
@@ -1735,16 +1814,28 @@ wss.on("connection", (ws) => {
           }
           markSelfHealIfNeeded(room, player.id, targetId);
           room.game.abilityUsed[player.id] = true;
-          sendPrivate(player.id, `${targetName}님을 치료 대상으로 지정했습니다. (조커: 실제 효과 없음)`, room.game.day);
+          sendPrivate(player.id, `${targetName}님을 치료 대상으로 지정했습니다. (조커: 실제 효과 없음)`, room.game.day, { danger: true });
+          sendPrivateSystemChat(player.id, {
+            message: `${targetName}님을 치료 대상으로 지정했습니다. (조커: 실제 효과 없음)`,
+            highlightDanger: true,
+          });
           return;
         }
         if (fakeRole === "police") {
           room.game.abilityUsed[player.id] = true;
-          sendPrivate(player.id, `${targetName}님을 조사했습니다. (조커: 실제 효과 없음)`, room.game.day);
+          sendPrivate(player.id, `${targetName}님을 조사했습니다. (조커: 실제 효과 없음)`, room.game.day, { danger: true });
+          sendPrivateSystemChat(player.id, {
+            message: `${targetName}님을 조사했습니다. (조커: 실제 효과 없음)`,
+            highlightDanger: true,
+          });
           return;
         }
         room.game.abilityUsed[player.id] = true;
-        sendPrivate(player.id, `${targetName}님에게 능력을 사용했습니다. (조커: 실제 효과 없음)`, room.game.day);
+        sendPrivate(player.id, `${targetName}님에게 능력을 사용했습니다. (조커: 실제 효과 없음)`, room.game.day, { danger: true });
+        sendPrivateSystemChat(player.id, {
+          message: `${targetName}님에게 능력을 사용했습니다. (조커: 실제 효과 없음)`,
+          highlightDanger: true,
+        });
         return;
       }
 

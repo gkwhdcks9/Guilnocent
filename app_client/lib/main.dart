@@ -10,6 +10,7 @@ const String kDefaultLanServerWsUrl = 'ws://127.0.0.1:8080';
 const int kLanDiscoveryPort = 41234;
 const String kLanDiscoveryMagic = 'GUILNOCENT_DISCOVER';
 const String kRequiredRulesVersion = '2026.03.06-rules-1';
+const String kDangerLogPrefix = '[!DANGER!] ';
 const List<String> kQuickEmojis = ['😀', '😂', '😱', '🤔', '😡', '😭', '👍', '👎', '🙏', '👏'];
 
 void main() {
@@ -87,10 +88,13 @@ class _GameHomePageState extends State<GameHomePage> {
   bool _chatNearBottom = true;
   int _unreadChatCount = 0;
   String _settingsTab = 'game';
+  static const double _unifiedModalWidthFactor = 0.9;
+  static const double _unifiedModalHeightFactor = 0.62;
   final Set<String> _sessionResetRoomIds = <String>{};
   final Set<int> _loggedRoleDescriptionDays = <int>{};
   VoidCallback? _refreshSettingsModal;
   VoidCallback? _refreshPlayersModal;
+  VoidCallback? _refreshActionModal;
 
   bool get _connected => _channel != null;
   bool get _inRoom => _room != null;
@@ -441,6 +445,7 @@ class _GameHomePageState extends State<GameHomePage> {
       });
       _refreshSettingsModal?.call();
       _refreshPlayersModal?.call();
+      _refreshActionModal?.call();
       _resetRoomSettingsForSessionIfNeeded(room);
       return;
     }
@@ -576,17 +581,6 @@ class _GameHomePageState extends State<GameHomePage> {
 
   void _castVote(String? targetId) {
     _send({'type': 'set_vote', 'targetId': targetId});
-  }
-
-  void _castExecutionVote(bool approve) {
-    _send({'type': 'set_execution_vote', 'approve': approve});
-  }
-
-  void _setMafiaContinue(bool shouldContinue) {
-    _send({
-      'type': 'mafia_continue',
-      'decision': shouldContinue ? 'continue' : 'stop',
-    });
   }
 
   void _setGameMode(String mode) {
@@ -764,16 +758,6 @@ class _GameHomePageState extends State<GameHomePage> {
     return '미정';
   }
 
-  String _playerNameById(String? playerId, List<PlayerInfo> players) {
-    if (playerId == null || playerId.isEmpty) return '-';
-    for (final player in players) {
-      if (player.id == playerId) {
-        return player.name;
-      }
-    }
-    return playerId;
-  }
-
   String _roleDescription(String role, {String? fakeRole}) {
     if (role == 'mafia') {
       return '역할: 마피아 · 밤에 플레이어 1명을 탈락 대상으로 지정할 수 있습니다.';
@@ -789,42 +773,6 @@ class _GameHomePageState extends State<GameHomePage> {
       return '역할: 조커(시민 편) · 위장 직업($masked)처럼 보이지만 능력은 실제로 발동되지 않습니다.';
     }
     return '역할: 시민 · 특별한 밤 능력은 없습니다.';
-  }
-
-  InlineSpan _privateLogSpan(BuildContext context, String item) {
-    final closeIdx = item.indexOf('] ');
-    final hasDayPrefix = item.startsWith('[') && closeIdx > 0;
-    final isRoleLine = item.contains('역할:');
-
-    if (!hasDayPrefix) {
-      return TextSpan(
-        text: item,
-        style: TextStyle(
-          fontWeight: isRoleLine ? FontWeight.w700 : FontWeight.w400,
-        ),
-      );
-    }
-
-    final prefix = item.substring(0, closeIdx + 1);
-    final rest = item.substring(closeIdx + 2);
-    return TextSpan(
-      children: [
-        TextSpan(
-          text: '$prefix ',
-          style: const TextStyle(
-            color: Colors.white60,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        TextSpan(
-          text: rest,
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-            fontWeight: isRoleLine ? FontWeight.w700 : FontWeight.w400,
-          ),
-        ),
-      ],
-    );
   }
 
   Widget _sectionTitle(BuildContext context, String title, {IconData? icon}) {
@@ -867,41 +815,60 @@ class _GameHomePageState extends State<GameHomePage> {
   Widget _modalSwitchRow(BuildContext dialogContext, {required String current}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          TextButton.icon(
-            onPressed: current == 'players'
-                ? null
-                : () {
-                    Navigator.of(dialogContext).pop();
-                    Future.microtask(_showPlayersModal);
-                  },
-            icon: const Icon(Icons.groups_2, size: 16),
-            label: const Text('유저목록'),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: WrapAlignment.start,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              TextButton.icon(
+                onPressed: current == 'action'
+                    ? null
+                    : (_inRoom
+                        ? () {
+                            Navigator.of(dialogContext).pop();
+                            Future.microtask(_showActionModal);
+                          }
+                        : null),
+                icon: const Icon(Icons.lock, size: 16),
+                label: const Text('개인로그'),
+              ),
+              TextButton.icon(
+                onPressed: current == 'players'
+                    ? null
+                    : () {
+                        Navigator.of(dialogContext).pop();
+                        Future.microtask(_showPlayersModal);
+                      },
+                icon: const Icon(Icons.groups_2, size: 16),
+                label: const Text('유저목록'),
+              ),
+              TextButton.icon(
+                onPressed: current == 'help'
+                    ? null
+                    : () {
+                        Navigator.of(dialogContext).pop();
+                        Future.microtask(_showRulesHelpModal);
+                      },
+                icon: const Icon(Icons.help_outline, size: 16),
+                label: const Text('도움말'),
+              ),
+              TextButton.icon(
+                onPressed: current == 'settings'
+                    ? null
+                    : () {
+                        Navigator.of(dialogContext).pop();
+                        Future.microtask(_showGameSettingsModal);
+                      },
+                icon: const Icon(Icons.settings, size: 16),
+                label: const Text('게임설정'),
+              ),
+            ],
           ),
-          TextButton.icon(
-            onPressed: current == 'help'
-                ? null
-                : () {
-                    Navigator.of(dialogContext).pop();
-                    Future.microtask(_showRulesHelpModal);
-                  },
-            icon: const Icon(Icons.help_outline, size: 16),
-            label: const Text('도움말'),
-          ),
-          TextButton.icon(
-            onPressed: current == 'settings'
-                ? null
-                : () {
-                    Navigator.of(dialogContext).pop();
-                    Future.microtask(_showGameSettingsModal);
-                  },
-            icon: const Icon(Icons.settings, size: 16),
-            label: const Text('게임설정'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -916,8 +883,8 @@ class _GameHomePageState extends State<GameHomePage> {
           insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Center(
             child: FractionallySizedBox(
-              widthFactor: 0.88,
-              heightFactor: 0.55,
+              widthFactor: _unifiedModalWidthFactor,
+              heightFactor: _unifiedModalHeightFactor,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
@@ -933,6 +900,7 @@ class _GameHomePageState extends State<GameHomePage> {
                         Container(
                           color: const Color(0x551B1D25),
                           child: const TabBar(
+                            isScrollable: true,
                             tabs: [
                               Tab(text: '직업 설명'),
                               Tab(text: '오리지널 마피아 규칙'),
@@ -1000,6 +968,109 @@ class _GameHomePageState extends State<GameHomePage> {
     );
   }
 
+  bool _isImportantSummaryLog(String item) {
+    if (item.startsWith(kDangerLogPrefix)) return true;
+    if (item.contains('역할:')) return false;
+    final rest = item.startsWith('[') && item.contains('] ')
+        ? item.substring(item.indexOf('] ') + 2)
+        : item;
+    const keywords = [
+      '투표',
+      '처형',
+      '찬성',
+      '반대',
+      '기권',
+      '치료',
+      '조사',
+      '능력',
+      '탈락',
+      '결과',
+      '확정',
+    ];
+    return keywords.any(rest.contains);
+  }
+
+  List<String> _importantSummaryLogs() {
+    return _privateLogs.where(_isImportantSummaryLog).toList(growable: false);
+  }
+
+  InlineSpan _summaryLogSpan(BuildContext context, String item) {
+    final closeIdx = item.indexOf('] ');
+    final hasDayPrefix = item.startsWith('[') && closeIdx > 0;
+    final prefix = hasDayPrefix ? item.substring(0, closeIdx + 1) : null;
+    final rawRest = hasDayPrefix ? item.substring(closeIdx + 2) : item;
+    final isDanger = rawRest.startsWith(kDangerLogPrefix);
+    final rest = isDanger ? rawRest.substring(kDangerLogPrefix.length) : rawRest;
+
+    const boldKeywords = [
+      '투표',
+      '처형',
+      '찬성',
+      '반대',
+      '기권',
+      '치료',
+      '조사',
+      '능력',
+      '탈락',
+      '결과',
+      '확정',
+    ];
+    final pattern = RegExp(boldKeywords.map(RegExp.escape).join('|'));
+    final baseColor = Theme.of(context).textTheme.bodyMedium?.color;
+    final spans = <TextSpan>[];
+    int cursor = 0;
+    for (final match in pattern.allMatches(rest)) {
+      if (match.start > cursor) {
+        spans.add(
+          TextSpan(
+            text: rest.substring(cursor, match.start),
+            style: TextStyle(
+              color: isDanger ? Colors.redAccent : baseColor,
+              fontWeight: isDanger ? FontWeight.w700 : FontWeight.w400,
+            ),
+          ),
+        );
+      }
+      spans.add(
+        TextSpan(
+          text: rest.substring(match.start, match.end),
+          style: TextStyle(
+            color: isDanger ? Colors.redAccent : baseColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+      cursor = match.end;
+    }
+    if (cursor < rest.length) {
+      spans.add(
+        TextSpan(
+          text: rest.substring(cursor),
+          style: TextStyle(
+            color: isDanger ? Colors.redAccent : baseColor,
+            fontWeight: isDanger ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+      );
+    }
+
+    if (prefix == null) {
+      return TextSpan(children: spans);
+    }
+    return TextSpan(
+      children: [
+        TextSpan(
+          text: '$prefix ',
+          style: const TextStyle(
+            color: Colors.white60,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        ...spans,
+      ],
+    );
+  }
+
   void _showGameSettingsModal() {
     final room = _room;
     if (room == null) {
@@ -1033,8 +1104,8 @@ class _GameHomePageState extends State<GameHomePage> {
                 insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Center(
                   child: FractionallySizedBox(
-                    widthFactor: 0.86,
-                    heightFactor: 0.32,
+                    widthFactor: _unifiedModalWidthFactor,
+                    heightFactor: _unifiedModalHeightFactor,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
@@ -1060,8 +1131,8 @@ class _GameHomePageState extends State<GameHomePage> {
               insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: Center(
                 child: FractionallySizedBox(
-                  widthFactor: 0.9,
-                  heightFactor: 0.62,
+                  widthFactor: _unifiedModalWidthFactor,
+                  heightFactor: _unifiedModalHeightFactor,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
@@ -1369,14 +1440,16 @@ class _GameHomePageState extends State<GameHomePage> {
             };
             final currentRoom = _room;
             final players = currentRoom?.players ?? const <PlayerInfo>[];
+            final isVotingPhase = currentRoom?.game.phase == 'voting';
+            final canAbstainVote = isVotingPhase && !_isMyEliminated;
 
             return Dialog(
               backgroundColor: Colors.transparent,
               insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: Center(
                 child: FractionallySizedBox(
-                  widthFactor: 0.9,
-                  heightFactor: 0.58,
+                  widthFactor: _unifiedModalWidthFactor,
+                  heightFactor: _unifiedModalHeightFactor,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
@@ -1392,6 +1465,33 @@ class _GameHomePageState extends State<GameHomePage> {
                             padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
                             child: _sectionTitle(context, '유저 목록 (투표 선택)', icon: Icons.groups),
                           ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: canAbstainVote
+                                        ? () {
+                                            Navigator.of(context).pop();
+                                            _castVote(null);
+                                          }
+                                        : null,
+                                    icon: const Icon(Icons.remove_circle_outline),
+                                    label: const Text('기권 투표'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isVotingPhase)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                              child: Text(
+                                '기권 투표는 처형 투표 단계에서만 가능합니다.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
@@ -1419,15 +1519,19 @@ class _GameHomePageState extends State<GameHomePage> {
                                         : null,
                                     style: FilledButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                     child: Text(
                                       label,
                                       textAlign: TextAlign.center,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
+                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
                                         color: isMafiaMate ? Colors.redAccent : null,
                                         fontWeight: isMafiaMate ? FontWeight.w700 : FontWeight.w500,
+                                        letterSpacing: 0.15,
                                       ),
                                     ),
                                   );
@@ -1458,6 +1562,171 @@ class _GameHomePageState extends State<GameHomePage> {
       },
     ).whenComplete(() {
       _refreshPlayersModal = null;
+    });
+  }
+
+  void _showActionModal() {
+    if (_room == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('방에 입장한 뒤 개인 로그를 확인할 수 있습니다.'),
+            duration: Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            _refreshActionModal = () {
+              if (!mounted || _isDisposing) return;
+              setDialogState(() {});
+            };
+            final room = _room;
+            if (room == null) {
+              return Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Center(
+                  child: FractionallySizedBox(
+                    widthFactor: _unifiedModalWidthFactor,
+                    heightFactor: _unifiedModalHeightFactor,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xCC11131B),
+                          border: Border.all(color: const Color(0x44FFFFFF)),
+                        ),
+                        child: const Center(child: Text('방 정보가 없습니다.')),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            final players = room.players;
+            final roleColor = _myRole == 'mafia'
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.tertiary;
+            final summaryLogs = _importantSummaryLogs();
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Center(
+                child: FractionallySizedBox(
+                  widthFactor: _unifiedModalWidthFactor,
+                  heightFactor: _unifiedModalHeightFactor,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xCC11131B),
+                        border: Border.all(color: const Color(0x44FFFFFF)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _modalSwitchRow(context, current: 'action'),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                            child: _sectionTitle(context, '개인 로그', icon: Icons.lock),
+                          ),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      Chip(
+                                        avatar: const Icon(Icons.tag, size: 16),
+                                        label: Text('ROOM ${room.id}'),
+                                      ),
+                                      Chip(
+                                        avatar: const Icon(Icons.schedule, size: 16),
+                                        label: Text('DAY ${room.game.day} · ${_phaseLabel(room.game.phase)}'),
+                                      ),
+                                      Chip(
+                                        avatar: Icon(Icons.person, size: 16, color: roleColor),
+                                        label: Text(
+                                          _myRole == 'joker' && _jokerFakeRole != null
+                                              ? '내 역할 조커 (위장 ${_roleLabel(_jokerFakeRole!)})'
+                                              : '내 역할 ${_roleLabel(_myRole)}',
+                                        ),
+                                      ),
+                                      Chip(
+                                        avatar: const Icon(Icons.group, size: 16),
+                                        label: Text('인원 ${players.length}명'),
+                                      ),
+                                      if (_isMyEliminated)
+                                        const Chip(
+                                          avatar: Icon(Icons.block, size: 16),
+                                          label: Text('탈락 상태'),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _sectionTitle(context, '요약 기록', icon: Icons.summarize),
+                                  const SizedBox(height: 8),
+                                  if (summaryLogs.isEmpty)
+                                    Text(
+                                      '게임 시작 이후 능력 사용 결과와 투표 결과가 누적되면 이곳에 요약됩니다.',
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    )
+                                  else
+                                    for (final item in summaryLogs.reversed.take(12))
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 4),
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: Theme.of(context).textTheme.bodyMedium,
+                                            children: [
+                                              const TextSpan(text: '• '),
+                                              _summaryLogSpan(context, item),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close),
+                                label: const Text('닫기'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      _refreshActionModal = null;
     });
   }
 
@@ -1639,12 +1908,6 @@ class _GameHomePageState extends State<GameHomePage> {
       );
     }
 
-    final room = _room;
-    final players = room?.players ?? const <PlayerInfo>[];
-    final roleColor = _myRole == 'mafia'
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.tertiary;
-    final canAct = !_isMyEliminated;
     final isAbilityPhase = _room?.game.inProgress == true && _room?.game.phase == 'ability';
     final canUseMafiaNightChat = isAbilityPhase && _myRole == 'mafia' && !_isMyEliminated;
     final canUseTextChat = !isAbilityPhase || canUseMafiaNightChat;
@@ -1666,26 +1929,34 @@ class _GameHomePageState extends State<GameHomePage> {
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         actions: [
-          IconButton(
-            onPressed: _showPlayersModal,
-            tooltip: '유저 목록',
-            icon: const Icon(Icons.groups_2),
-          ),
+          if (_inRoom)
+            IconButton(
+              onPressed: _showActionModal,
+              tooltip: '개인 로그',
+              icon: const Icon(Icons.lock),
+            ),
+          if (_inRoom)
+            IconButton(
+              onPressed: _showPlayersModal,
+              tooltip: '유저 목록',
+              icon: const Icon(Icons.groups_2),
+            ),
           IconButton(
             onPressed: _showRulesHelpModal,
             tooltip: '게임 규칙/직업 설명',
             icon: const Icon(Icons.help_outline),
           ),
-          IconButton(
-            onPressed: _showGameSettingsModal,
-            tooltip: '게임 설정',
-            icon: const Icon(Icons.settings),
-          ),
+          if (_inRoom)
+            IconButton(
+              onPressed: _showGameSettingsModal,
+              tooltip: '게임 설정',
+              icon: const Icon(Icons.settings),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Center(
               child: Chip(
-                label: Text(_connected ? 'ONLINE' : 'OFFLINE'),
+                label: Text(_connected ? 'ON' : 'OFFLINE'),
                 avatar: Icon(
                   _connected ? Icons.wifi : Icons.wifi_off,
                   size: 16,
@@ -1851,197 +2122,83 @@ class _GameHomePageState extends State<GameHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _sectionTitle(context, '채팅방', icon: Icons.forum),
+                    _sectionTitle(context, '채팅', icon: Icons.chat_bubble),
                     const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF232531), Color(0xFF161821)],
-                        ),
-                        border: Border.all(color: const Color(0x44FFFFFF)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('ROOM ${room!.id}', style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              Chip(
-                                avatar: const Icon(Icons.schedule, size: 16),
-                                label: Text('DAY ${room.game.day} · ${_phaseLabel(room.game.phase)}'),
-                              ),
-                              if (room.game.phaseEndsAt != null)
-                                Chip(
-                                  avatar: const Icon(Icons.timer, size: 16),
-                                  label: Text('남은 시간 ${_remainSeconds(room.game)}초'),
-                                ),
-                              Chip(
-                                avatar: Icon(Icons.person, size: 16, color: roleColor),
-                                label: Text(
-                                  _myRole == 'joker' && _jokerFakeRole != null
-                                      ? '내 역할 조커 (위장 ${_roleLabel(_jokerFakeRole!)})'
-                                      : '내 역할 ${_roleLabel(_myRole)}',
-                                ),
-                              ),
-                              Chip(
-                                avatar: const Icon(Icons.group, size: 16),
-                                label: Text('인원 ${players.length}명'),
-                              ),
-                              if (_isMyEliminated)
-                                const Chip(
-                                  avatar: Icon(Icons.block, size: 16),
-                                  label: Text('탈락 상태'),
-                                ),
-                            ],
-                          ),
-                          if (room.game.phaseDurationSec != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              '페이즈 제한시간: ${_remainSeconds(room.game)} / ${room.game.phaseDurationSec}초',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            const SizedBox(height: 6),
-                            LinearProgressIndicator(
-                              value: _phaseProgress(room.game),
-                              minHeight: 8,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '호스트: ${_playerNameById(room.hostId, players)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ),
-                              if (_isHost && !room.game.inProgress)
-                                ElevatedButton(
-                                  onPressed: room.game.canStart ? () => _send({'type': 'start_game'}) : null,
-                                  child: const Text('게임 시작'),
-                                ),
-                              const SizedBox(width: 8),
-                              OutlinedButton(
-                                onPressed: _connected && _inRoom && !room.game.inProgress
-                                    ? () => _send({'type': 'leave_room'})
-                                    : null,
-                                child: const Text('방 나가기'),
-                              ),
-                            ],
-                          ),
-                          if (!room.game.inProgress) ...[
-                            const SizedBox(height: 10),
-                            Text(
-                              '게임 설정은 우측 상단 톱니 버튼에서 변경할 수 있습니다.',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (_inRoom)
-              _panel(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle(context, '행동', icon: Icons.touch_app),
-                    const SizedBox(height: 8),
-                    if (room!.game.phase == 'voting') ...[
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: canAct ? () => _castVote(null) : null,
-                        icon: const Icon(Icons.remove_circle_outline),
-                        label: const Text('기권 투표'),
-                      ),
-                      if (!canAct)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            '탈락한 플레이어는 투표할 수 없습니다.',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                    ],
-                    if (room.game.phase == 'execution_vote') ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '처형 후보: ${room.game.executionCandidateName(players)}',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: canAct ? () => _castExecutionVote(true) : null,
-                              icon: const Icon(Icons.how_to_vote),
-                              label: const Text('찬성'),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: canAct ? () => _castExecutionVote(false) : null,
-                              icon: const Icon(Icons.block),
-                              label: const Text('반대'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (room.game.phase == 'mafia_decision') ...[
-                      const SizedBox(height: 8),
-                      if (_myRole == 'mafia')
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () => _setMafiaContinue(true),
-                                icon: const Icon(Icons.play_arrow),
-                                label: const Text('계속 진행'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () => _setMafiaContinue(false),
-                                icon: const Icon(Icons.stop_circle_outlined),
-                                label: const Text('스톱'),
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        Text(
-                          '마피아의 다음 진행 선택을 기다리는 중입니다.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                    ],
-                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(child: _sectionTitle(context, '채팅', icon: Icons.chat_bubble)),
-                        if (_unreadChatCount > 0)
-                          TextButton.icon(
-                            onPressed: _jumpToLatestChat,
-                            icon: const Icon(Icons.arrow_downward, size: 16),
-                            label: Text('새 메시지 $_unreadChatCount개'),
+                        if (_isHost && !(_room?.game.inProgress ?? false))
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: (_room?.game.canStart ?? false) ? () => _send({'type': 'start_game'}) : null,
+                              child: const Text('게임 시작'),
+                            ),
                           ),
+                        if (_isHost && !(_room?.game.inProgress ?? false)) const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _connected && _inRoom && !(_room?.game.inProgress ?? false)
+                                ? () => _send({'type': 'leave_room'})
+                                : null,
+                            child: const Text('방 나가기'),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (_room?.game.phaseDurationSec != null && _room?.game.phaseEndsAt != null)
+                                    ? '제한시간 ${_remainSeconds(_room!.game)} / ${_room!.game.phaseDurationSec}초'
+                                    : '채팅 외 조작은 상단 개인로그/유저목록/설정 모달에서 진행하세요.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              if (_room?.game.phaseDurationSec != null && _room?.game.phaseEndsAt != null) ...[
+                                const SizedBox(height: 6),
+                                LinearProgressIndicator(
+                                  value: _phaseProgress(_room!.game),
+                                  minHeight: 7,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'DAY ${_room?.game.day ?? 0} · ${_phaseLabel(_room?.game.phase ?? 'lobby')}',
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                            Text(
+                              _myRole == 'joker' && _jokerFakeRole != null
+                                  ? '내 역할 조커(위장 ${_roleLabel(_jokerFakeRole!)})'
+                                  : '내 역할 ${_roleLabel(_myRole)}',
+                              style: Theme.of(context).textTheme.labelSmall,
+                              textAlign: TextAlign.right,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (_unreadChatCount > 0)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _jumpToLatestChat,
+                          icon: const Icon(Icons.arrow_downward, size: 16),
+                          label: Text('새 메시지 $_unreadChatCount개'),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
                     Container(
-                      height: MediaQuery.of(context).size.height * 0.62,
+                      height: MediaQuery.of(context).size.height * 0.74,
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: const Color(0xFF12141C),
@@ -2093,11 +2250,28 @@ class _GameHomePageState extends State<GameHomePage> {
                                     style: Theme.of(context).textTheme.labelSmall,
                                   ),
                                   const SizedBox(height: 2),
+                                  if (item.imageAsset != null && item.imageAsset!.isNotEmpty) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.asset(
+                                          'image/${item.imageAsset!}',
+                                          height: 72,
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                   Text(
                                     item.message,
                                     style: item.isEmoji
                                         ? Theme.of(context).textTheme.headlineSmall
-                                        : null,
+                                        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: item.highlightDanger ? Colors.redAccent : null,
+                                              fontWeight: item.highlightDanger ? FontWeight.w700 : null,
+                                            ),
                                   ),
                                   if (item.ts != null) ...[
                                     const SizedBox(height: 2),
@@ -2164,29 +2338,6 @@ class _GameHomePageState extends State<GameHomePage> {
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            if (_privateLogs.isNotEmpty && _inRoom)
-              _panel(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle(context, '개인 로그', icon: Icons.lock),
-                    const SizedBox(height: 8),
-                    for (final item in _privateLogs.reversed.take(8))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: RichText(
-                          text: TextSpan(
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            children: [
-                              const TextSpan(text: '• '),
-                              _privateLogSpan(context, item),
-                            ],
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -2333,6 +2484,8 @@ class ChatItem {
     required this.system,
     required this.centerNotice,
     required this.isEmoji,
+    this.imageAsset,
+    required this.highlightDanger,
     this.ts,
   });
 
@@ -2342,6 +2495,8 @@ class ChatItem {
   final bool system;
   final bool centerNotice;
   final bool isEmoji;
+  final String? imageAsset;
+  final bool highlightDanger;
   final int? ts;
 
   factory ChatItem.fromJson(Map<String, dynamic> json) {
@@ -2352,6 +2507,8 @@ class ChatItem {
       system: json['system'] as bool? ?? false,
       centerNotice: json['centerNotice'] as bool? ?? false,
       isEmoji: json['isEmoji'] as bool? ?? false,
+      imageAsset: json['imageAsset'] as String?,
+      highlightDanger: json['highlightDanger'] as bool? ?? false,
       ts: json['ts'] as int?,
     );
   }
