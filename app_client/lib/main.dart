@@ -508,7 +508,7 @@ class _GameHomePageState extends State<GameHomePage> {
           ..addAll(role == 'mafia' ? mafiaPeerIds : const <String>{});
         _appendRoleDescriptionForDay(day, role, fakeRole: fakeRole);
         if (role == 'joker' && fakeRole != null && fakeRole.isNotEmpty) {
-          _status = '조커 배정 (시민 편 · 위장 직업: ${_roleLabel(fakeRole)})';
+          _status = '${_roleLabel(fakeRole)} 배정';
         }
       });
       return;
@@ -785,7 +785,7 @@ class _GameHomePageState extends State<GameHomePage> {
     }
     if (role == 'joker') {
       final masked = fakeRole == null || fakeRole.isEmpty ? '미정' : _roleLabel(fakeRole);
-      return '역할: 조커(시민 편) · 위장 직업($masked)처럼 보이지만 능력은 실제로 발동되지 않습니다.';
+      return '역할: $masked · 밤에 해당 직업의 능력을 사용할 수 있습니다.';
     }
     return '역할: 시민 · 특별한 밤 능력은 없습니다.';
   }
@@ -982,7 +982,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                   '마피아: 밤에 1명을 탈락 대상으로 지정합니다.',
                                   '의사: 밤에 1명을 치료할 수 있고, 자기 자신 연속 치료는 불가능합니다.',
                                   '경찰: 밤에 1명을 조사해 직업 정보를 확인합니다.',
-                                  '조커(시민 편): 위장 직업처럼 보이지만 능력은 실제로 발동되지 않습니다.',
+                                  '조커(시민 편): 게임 시작 시 위장 직업이 배정되며, 해당 직업의 능력을 사용합니다.',
                                 ],
                               ),
                               _helpTabContent(
