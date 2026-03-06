@@ -11,7 +11,7 @@ const int kLanDiscoveryPort = 41234;
 const String kLanDiscoveryMagic = 'GUILNOCENT_DISCOVER';
 const String kRequiredRulesVersion = '2026.03.06-rules-1';
 const String kDangerLogPrefix = '[!DANGER!] ';
-const List<String> kQuickEmojis = ['😀', '😂', '😱', '🤔', '😡', '😭', '👍', '👎', '🙏', '👏'];
+const List<String> kQuickEmojis = ['😀', '😂', '😱', '🤔', '😡', '😭'];
 
 void main() {
   runApp(const MafiaDailyApp());
@@ -861,13 +861,13 @@ class _GameHomePageState extends State<GameHomePage> {
 
   Widget _helpTabContent(BuildContext context, List<String> lines) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: lines
             .map(
               (line) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
                   '• $line',
                   style: Theme.of(context).textTheme.bodyMedium,
@@ -881,15 +881,15 @@ class _GameHomePageState extends State<GameHomePage> {
 
   Widget _modalSwitchRow(BuildContext dialogContext, {required String current}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
       child: Align(
         alignment: Alignment.centerLeft,
         child: SizedBox(
           width: double.infinity,
           child: Wrap(
             alignment: WrapAlignment.start,
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 4,
+            runSpacing: 4,
             children: [
               TextButton.icon(
                 onPressed: current == 'action'
@@ -947,7 +947,7 @@ class _GameHomePageState extends State<GameHomePage> {
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Center(
             child: FractionallySizedBox(
               widthFactor: _unifiedModalWidthFactor,
@@ -1013,7 +1013,7 @@ class _GameHomePageState extends State<GameHomePage> {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: TextButton.icon(
@@ -1168,7 +1168,7 @@ class _GameHomePageState extends State<GameHomePage> {
             if (currentRoom == null) {
               return Dialog(
                 backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Center(
                   child: FractionallySizedBox(
                     widthFactor: _unifiedModalWidthFactor,
@@ -1195,7 +1195,7 @@ class _GameHomePageState extends State<GameHomePage> {
 
             return Dialog(
               backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Center(
                 child: FractionallySizedBox(
                   widthFactor: _unifiedModalWidthFactor,
@@ -1213,11 +1213,11 @@ class _GameHomePageState extends State<GameHomePage> {
                           _modalSwitchRow(context, current: 'settings'),
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                            padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
                             color: const Color(0x551B1D25),
                             child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
+                              spacing: 4,
+                              runSpacing: 4,
                               children: [
                                 ChoiceChip(
                                   label: const Text('게임 설정'),
@@ -1244,14 +1244,14 @@ class _GameHomePageState extends State<GameHomePage> {
                           ),
                           Expanded(
                             child: SingleChildScrollView(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(8),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (settingsTab == 'game') ...[
                                     Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
+                                      spacing: 4,
+                                      runSpacing: 4,
                                       children: [
                                         ChoiceChip(
                                           label: const Text('오리지널 마피아'),
@@ -1275,15 +1275,15 @@ class _GameHomePageState extends State<GameHomePage> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4),
                                     Text(
                                       '현재 모드: ${_modeLabel(currentRoom.game.mode)}',
                                       style: Theme.of(context).textTheme.bodySmall,
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 4),
                                     for (final roleKey in ['mafia', 'doctor', 'police', 'joker'])
                                       Padding(
-                                        padding: const EdgeInsets.only(bottom: 6),
+                                        padding: const EdgeInsets.only(bottom: 4),
                                         child: Row(
                                           children: [
                                             Expanded(
@@ -1336,14 +1336,14 @@ class _GameHomePageState extends State<GameHomePage> {
                                       '마피아 점수 (조커 인원 기준)',
                                       style: Theme.of(context).textTheme.bodyMedium,
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 4),
                                     for (final config in [
                                       ('mafiaJoker2Plus', '조커 2명 이상', currentRoom.game.scoreSettings['mafiaJoker2Plus'] ?? 2),
                                       ('mafiaJoker1', '조커 1명', currentRoom.game.scoreSettings['mafiaJoker1'] ?? 4),
                                       ('mafiaJoker0', '조커 0명', currentRoom.game.scoreSettings['mafiaJoker0'] ?? 6),
                                     ])
                                       Padding(
-                                        padding: const EdgeInsets.only(bottom: 6),
+                                        padding: const EdgeInsets.only(bottom: 4),
                                         child: Row(
                                           children: [
                                             Expanded(
@@ -1394,12 +1394,12 @@ class _GameHomePageState extends State<GameHomePage> {
                                           ],
                                         ),
                                       ),
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 6),
                                     Text(
                                       '시민 종료 점수 배수',
                                       style: Theme.of(context).textTheme.bodyMedium,
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 4),
                                     Row(
                                       children: [
                                         Expanded(
@@ -1441,7 +1441,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                       '마피아 승리 시 시민 편 보너스는 항상 n × 1로 고정됩니다.',
                                       style: Theme.of(context).textTheme.bodySmall,
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4),
                                     Text(
                                       currentRoom.game.mode == 'moral_roulette'
                                           ? (_isHost
@@ -1456,7 +1456,7 @@ class _GameHomePageState extends State<GameHomePage> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                            padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
@@ -1512,7 +1512,7 @@ class _GameHomePageState extends State<GameHomePage> {
 
             return Dialog(
               backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Center(
                 child: FractionallySizedBox(
                   widthFactor: _unifiedModalWidthFactor,
@@ -1529,11 +1529,11 @@ class _GameHomePageState extends State<GameHomePage> {
                         children: [
                           _modalSwitchRow(context, current: 'players'),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
                             child: _sectionTitle(context, '유저 목록 (투표 선택)', icon: Icons.groups),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                            padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
                             child: Row(
                               children: [
                                 Expanded(
@@ -1553,7 +1553,7 @@ class _GameHomePageState extends State<GameHomePage> {
                           ),
                           if (!isVotingPhase)
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                              padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
                               child: Text(
                                 '기권 투표는 처형 투표 단계에서만 가능합니다.',
                                 style: Theme.of(context).textTheme.bodySmall,
@@ -1561,13 +1561,13 @@ class _GameHomePageState extends State<GameHomePage> {
                             ),
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
                               child: GridView.builder(
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 4,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                  mainAxisExtent: 72,
+                                  crossAxisSpacing: 6,
+                                  mainAxisSpacing: 6,
+                                  mainAxisExtent: 66,
                                 ),
                                 itemCount: players.length,
                                 itemBuilder: (context, index) {
@@ -1585,7 +1585,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                           }
                                         : null,
                                     style: FilledButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
@@ -1607,7 +1607,7 @@ class _GameHomePageState extends State<GameHomePage> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                            padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
@@ -1660,7 +1660,7 @@ class _GameHomePageState extends State<GameHomePage> {
             if (room == null) {
               return Dialog(
                 backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Center(
                   child: FractionallySizedBox(
                     widthFactor: _unifiedModalWidthFactor,
@@ -1688,7 +1688,7 @@ class _GameHomePageState extends State<GameHomePage> {
 
             return Dialog(
               backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Center(
                 child: FractionallySizedBox(
                   widthFactor: _unifiedModalWidthFactor,
@@ -1705,18 +1705,18 @@ class _GameHomePageState extends State<GameHomePage> {
                         children: [
                           _modalSwitchRow(context, current: 'action'),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
                             child: _sectionTitle(context, '개인 로그', icon: Icons.lock),
                           ),
                           Expanded(
                             child: SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
+                                    spacing: 4,
+                                    runSpacing: 4,
                                     children: [
                                       Chip(
                                         avatar: const Icon(Icons.tag, size: 16),
@@ -1743,9 +1743,9 @@ class _GameHomePageState extends State<GameHomePage> {
                                         ),
                                     ],
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 6),
                                   _sectionTitle(context, '요약 기록', icon: Icons.summarize),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 4),
                                   if (summaryLogs.isEmpty)
                                     Text(
                                       '게임 시작 이후 능력 사용 결과와 투표 결과가 누적되면 이곳에 요약됩니다.',
@@ -1754,7 +1754,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                   else
                                     for (final item in summaryLogs.reversed.take(12))
                                       Padding(
-                                        padding: const EdgeInsets.only(bottom: 4),
+                                        padding: const EdgeInsets.only(bottom: 2),
                                         child: RichText(
                                           text: TextSpan(
                                             style: Theme.of(context).textTheme.bodyMedium,
@@ -1770,7 +1770,7 @@ class _GameHomePageState extends State<GameHomePage> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                            padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
@@ -1797,9 +1797,9 @@ class _GameHomePageState extends State<GameHomePage> {
 
   Widget _panel({required Widget child}) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: child,
       ),
     );
@@ -1829,6 +1829,27 @@ class _GameHomePageState extends State<GameHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final shortestSide = screenSize.shortestSide;
+    final uiScale = (shortestSide / 390).clamp(0.9, 1.08).toDouble();
+    double scaled(double value, {double min = 0, double max = double.infinity}) {
+      return (value * uiScale).clamp(min, max).toDouble();
+    }
+    final authCardWidth = (screenSize.width * 0.92).clamp(300.0, 360.0).toDouble();
+    final statusTextWidth = (screenSize.width * 0.78).clamp(220.0, 320.0).toDouble();
+    final appBarLogoHeight = scaled(28, min: 24, max: 30);
+    final chatBoxHeight = (screenSize.height * 0.46).clamp(260.0, 420.0).toDouble();
+    final chatBubbleMaxWidth = (screenSize.width * 0.72).clamp(220.0, 360.0).toDouble();
+    final quickEmojiSize = Size(
+      scaled(34, min: 30, max: 38),
+      scaled(30, min: 28, max: 34),
+    );
+    final quickEmojiPadding = EdgeInsets.symmetric(
+      horizontal: scaled(6, min: 4, max: 8),
+      vertical: scaled(3, min: 2, max: 5),
+    );
+    final quickEmojiFontSize = scaled(16, min: 14, max: 18);
+
     if (_serverEndpoint == null && !_isConnecting && _myPlayerId == null) {
       return Scaffold(
         bottomNavigationBar: _creatorFooter(context),
@@ -1843,17 +1864,17 @@ class _GameHomePageState extends State<GameHomePage> {
           child: Center(
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(14),
                 child: SizedBox(
-                  width: 320,
+                  width: authCardWidth,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('서버 선택', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       const Text('플레이 방식을 선택하세요.'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 6),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -1862,12 +1883,12 @@ class _GameHomePageState extends State<GameHomePage> {
                           label: const Text('공용 서버로 플레이'),
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 6),
                       TextField(
                         controller: _lanServerController,
                         decoration: const InputDecoration(labelText: 'LAN 주소 (예: ws://192.168.0.10:8080)'),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -1876,7 +1897,7 @@ class _GameHomePageState extends State<GameHomePage> {
                           label: Text(_isDiscoveringLan ? 'LAN 탐색 중...' : 'LAN 자동 탐색 후 연결'),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
@@ -1911,7 +1932,7 @@ class _GameHomePageState extends State<GameHomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(width: 44, height: 44, child: CircularProgressIndicator(strokeWidth: 3)),
-                SizedBox(height: 14),
+                SizedBox(height: 8),
                 Text('서버 연결 중...'),
               ],
             ),
@@ -1934,31 +1955,31 @@ class _GameHomePageState extends State<GameHomePage> {
           child: Center(
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.wifi_off, size: 34),
-                    const SizedBox(height: 10),
-                    const Text('서버 연결 실패'),
                     const SizedBox(height: 6),
+                    const Text('서버 연결 실패'),
+                    const SizedBox(height: 4),
                     SizedBox(
-                      width: 280,
+                      width: statusTextWidth,
                       child: Text(
                         _status,
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     SizedBox(
-                      width: 280,
+                      width: statusTextWidth,
                       child: Text(
                         '서버 주소: ${_serverEndpoint ?? '-'}',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
                     ElevatedButton.icon(
                       onPressed: _connect,
                       icon: const Icon(Icons.refresh),
@@ -1989,13 +2010,10 @@ class _GameHomePageState extends State<GameHomePage> {
       bottomNavigationBar: _creatorFooter(context),
       appBar: AppBar(
         centerTitle: false,
-        title: SizedBox(
-          height: 34,
-          child: Image.asset(
-            'image/Moral_Roulette_icon.png',
-            fit: BoxFit.contain,
-            alignment: Alignment.centerLeft,
-          ),
+        title: Image.asset(
+          'image/Moral_Roulette_icon.png',
+          height: appBarLogoHeight,
+          fit: BoxFit.contain,
         ),
         actions: [
           if (_inRoom)
@@ -2044,7 +2062,7 @@ class _GameHomePageState extends State<GameHomePage> {
           ),
         ),
         child: ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(6),
           children: [
             if (!_inRoom) ...[
               _panel(
@@ -2052,12 +2070,12 @@ class _GameHomePageState extends State<GameHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _sectionTitle(context, '입장 허브', icon: Icons.vpn_key),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       '코드를 입력해 입장하거나, 자동 코드로 빠르게 방을 만들 수 있습니다.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(
@@ -2074,12 +2092,12 @@ class _GameHomePageState extends State<GameHomePage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     TextField(
                       controller: _roomController,
                       decoration: const InputDecoration(labelText: '방 코드 입력'),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(
@@ -2097,7 +2115,7 @@ class _GameHomePageState extends State<GameHomePage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
@@ -2123,7 +2141,7 @@ class _GameHomePageState extends State<GameHomePage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     TextField(
                       controller: _roomSearchController,
                       onChanged: (_) => setState(() {}),
@@ -2132,7 +2150,7 @@ class _GameHomePageState extends State<GameHomePage> {
                         prefixIcon: Icon(Icons.search),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     SwitchListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
@@ -2153,8 +2171,8 @@ class _GameHomePageState extends State<GameHomePage> {
                       ),
                     for (final roomInfo in filteredRooms)
                       Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           color: const Color(0x331B1D25),
@@ -2192,7 +2210,7 @@ class _GameHomePageState extends State<GameHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _sectionTitle(context, '채팅', icon: Icons.chat_bubble),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         if (_isHost && !(_room?.game.inProgress ?? false))
@@ -2202,7 +2220,7 @@ class _GameHomePageState extends State<GameHomePage> {
                               child: const Text('게임 시작'),
                             ),
                           ),
-                        if (_isHost && !(_room?.game.inProgress ?? false)) const SizedBox(width: 8),
+                        if (_isHost && !(_room?.game.inProgress ?? false)) const SizedBox(width: 4),
                         Expanded(
                           child: OutlinedButton(
                             onPressed: _connected && _inRoom && !(_room?.game.inProgress ?? false)
@@ -2214,7 +2232,7 @@ class _GameHomePageState extends State<GameHomePage> {
                       ],
                     ),
                     if (_room?.game.phase == 'execution_vote') ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Expanded(
@@ -2224,7 +2242,7 @@ class _GameHomePageState extends State<GameHomePage> {
                               label: const Text('찬성'),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: !_isMyEliminated ? () => _castExecutionVote(false) : null,
@@ -2236,7 +2254,7 @@ class _GameHomePageState extends State<GameHomePage> {
                       ),
                     ],
                     if (_room?.game.phase == 'mafia_decision') ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       if (_myRole == 'mafia' && !_isMyEliminated)
                         Row(
                           children: [
@@ -2247,7 +2265,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                 label: const Text('계속 진행'),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () => _setMafiaContinue(false),
@@ -2263,7 +2281,7 @@ class _GameHomePageState extends State<GameHomePage> {
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                     ],
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Expanded(
@@ -2277,7 +2295,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                               if (_room?.game.phaseDurationSec != null && _room?.game.phaseEndsAt != null) ...[
-                                const SizedBox(height: 6),
+                                SizedBox(height: scaled(3, min: 2, max: 4)),
                                 LinearProgressIndicator(
                                   value: _phaseProgress(_room!.game),
                                   minHeight: 7,
@@ -2287,7 +2305,7 @@ class _GameHomePageState extends State<GameHomePage> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
@@ -2313,10 +2331,10 @@ class _GameHomePageState extends State<GameHomePage> {
                           label: Text('새 메시지 $_unreadChatCount개'),
                         ),
                       ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Container(
-                      height: MediaQuery.of(context).size.height * 0.50,
-                      padding: const EdgeInsets.all(8),
+                      height: chatBoxHeight,
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: const Color(0xFF12141C),
                         borderRadius: BorderRadius.circular(12),
@@ -2329,7 +2347,7 @@ class _GameHomePageState extends State<GameHomePage> {
                           final item = _chatLogs[index];
                           if (item.centerNotice) {
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 7, top: 2),
+                              padding: const EdgeInsets.only(bottom: 3),
                               child: Center(
                                 child: Text(
                                   item.message,
@@ -2352,9 +2370,9 @@ class _GameHomePageState extends State<GameHomePage> {
                           return Align(
                             alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                             child: Container(
-                              constraints: const BoxConstraints(maxWidth: 300),
-                              margin: const EdgeInsets.only(bottom: 7),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              constraints: BoxConstraints(maxWidth: chatBubbleMaxWidth),
+                              margin: const EdgeInsets.only(bottom: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                               decoration: BoxDecoration(
                                 color: bubbleColor,
                                 borderRadius: BorderRadius.circular(12),
@@ -2366,15 +2384,15 @@ class _GameHomePageState extends State<GameHomePage> {
                                     item.system ? 'SYSTEM' : item.fromName,
                                     style: Theme.of(context).textTheme.labelSmall,
                                   ),
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 0),
                                   if (item.imageAsset != null && item.imageAsset!.isNotEmpty) ...[
                                     Padding(
-                                      padding: const EdgeInsets.only(bottom: 6),
+                                      padding: const EdgeInsets.only(bottom: 2),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(10),
                                         child: Image.asset(
                                           'image/${item.imageAsset!}',
-                                          height: 120,
+                                          height: scaled(120, min: 96, max: 128),
                                           fit: BoxFit.contain,
                                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                                         ),
@@ -2394,7 +2412,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                             ),
                                           )),
                                   if (item.ts != null) ...[
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 0),
                                     Text(
                                       _formatTime(item.ts),
                                       style: Theme.of(context).textTheme.labelSmall,
@@ -2407,10 +2425,10 @@ class _GameHomePageState extends State<GameHomePage> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     if (!canUseTextChat)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
                           '밤 능력 단계에서는 텍스트 채팅을 사용할 수 없습니다. (이모티콘 채팅 가능)',
                           style: Theme.of(context).textTheme.bodySmall,
@@ -2418,29 +2436,29 @@ class _GameHomePageState extends State<GameHomePage> {
                       ),
                     if (canUseMafiaNightChat)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
                           '밤 능력 단계 마피아 전용 채팅 중입니다. (다른 플레이어에게 보이지 않음)',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
                     Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                      spacing: 2,
+                      runSpacing: 2,
                       children: kQuickEmojis
                           .map(
                             (emoji) => OutlinedButton(
                               onPressed: canUseEmojiChat ? () => _sendEmoji(emoji) : null,
                               style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(42, 36),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: quickEmojiSize,
+                                padding: quickEmojiPadding,
                               ),
-                              child: Text(emoji, style: const TextStyle(fontSize: 18)),
+                              child: Text(emoji, style: TextStyle(fontSize: quickEmojiFontSize)),
                             ),
                           )
                           .toList(),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Expanded(
@@ -2450,7 +2468,7 @@ class _GameHomePageState extends State<GameHomePage> {
                             decoration: const InputDecoration(labelText: '메시지'),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         ElevatedButton.icon(
                           onPressed: canUseTextChat ? _sendChat : null,
                           icon: const Icon(Icons.send),
