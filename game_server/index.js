@@ -1869,7 +1869,6 @@ wss.on("connection", (ws) => {
           sendPrivate(player.id, `${targetName}님을 치료 대상으로 지정했습니다.`, room.game.day, { danger: true });
           sendPrivateSystemChat(player.id, {
             message: `${targetName}님을 치료 대상으로 지정했습니다.`,
-            imageAsset: "doctor_success.png",
             highlightDanger: true,
           });
           return;
