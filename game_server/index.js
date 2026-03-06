@@ -698,7 +698,7 @@ function assignRoles(room) {
       room.game.policeId = playerId;
     }
     if (role === "joker") {
-      const masks = ["mafia", "doctor", "police"];
+      const masks = ["doctor", "police"];
       room.game.jokerMaskRoles[playerId] = masks[Math.floor(Math.random() * masks.length)];
     }
     room.game.roles[playerId] = role;
@@ -1874,7 +1874,7 @@ wss.on("connection", (ws) => {
           return;
         }
         if (fakeRole === "police") {
-          const isMafia = Math.random() < 0.5;
+          const isMafia = Math.random() < 0.3;
           const resultText = isMafia
             ? `${targetName}님의 조사 결과: 마피아입니다.`
             : `${targetName}님의 조사 결과: 마피아가 아닙니다.`;
