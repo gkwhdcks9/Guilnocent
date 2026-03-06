@@ -74,11 +74,12 @@ function moralRouletteMafiaCountForAlive(room, aliveCount) {
 
 function effectiveRoleCounts(room, aliveCount) {
   if (room.game.mode === MODE_MORAL_ROULETTE) {
+    const configured = normalizeRoleCounts(room.game.mode, room.game.roleCounts || {});
     return {
       mafia: moralRouletteMafiaCountForAlive(room, aliveCount),
       doctor: aliveCount >= 2 ? 1 : 0,
       police: aliveCount >= 3 ? 1 : 0,
-      joker: moralRouletteJokerCountForAlive(aliveCount),
+      joker: Math.max(0, Math.min(MAX_ROOM_PLAYERS, Math.floor(Number(configured.joker) || 0))),
     };
   }
   return normalizeRoleCounts(room.game.mode, room.game.roleCounts);
@@ -173,9 +174,11 @@ function roomSnapshot(room) {
       lastVoteResult: game.lastVoteResult,
       eliminatedIds: Object.keys(game.eliminatedIds || {}),
       canStart: (() => {
+        if (playerList.length < 3) return false;
+        if (game.mode === MODE_MORAL_ROULETTE) return true;
         const normalized = effectiveRoleCounts(room, playerList.length);
         const total = normalized.mafia + normalized.doctor + normalized.police + normalized.joker;
-        return playerList.length >= 3 && total <= playerList.length;
+        return total <= playerList.length;
       })(),
     },
   };
@@ -384,6 +387,8 @@ function normalizeRoleCounts(mode, inputCounts) {
 function rolePoolForDay(room, aliveCount) {
   const configured = effectiveRoleCounts(room, aliveCount);
   const pool = [];
+  const keepAtLeastOneJoker = configured.joker > 0 && aliveCount >= 2;
+  const jokerCountInPool = () => pool.reduce((acc, role) => acc + (role === "joker" ? 1 : 0), 0);
 
   for (let i = 0; i < configured.mafia; i += 1) pool.push("mafia");
   for (let i = 0; i < configured.doctor; i += 1) pool.push("doctor");
@@ -391,11 +396,6 @@ function rolePoolForDay(room, aliveCount) {
   for (let i = 0; i < configured.joker; i += 1) pool.push("joker");
 
   while (pool.length > aliveCount) {
-    const jokerIdx = pool.lastIndexOf("joker");
-    if (jokerIdx >= 0) {
-      pool.splice(jokerIdx, 1);
-      continue;
-    }
     const policeIdx = pool.lastIndexOf("police");
     if (policeIdx >= 0) {
       pool.splice(policeIdx, 1);
@@ -412,6 +412,11 @@ function rolePoolForDay(room, aliveCount) {
       pool.splice(mafiaIdx, 1);
       continue;
     }
+    const jokerIdx = pool.lastIndexOf("joker");
+    if (jokerIdx >= 0 && (!keepAtLeastOneJoker || jokerCountInPool() > 1)) {
+      pool.splice(jokerIdx, 1);
+      continue;
+    }
     break;
   }
 
@@ -419,9 +424,22 @@ function rolePoolForDay(room, aliveCount) {
     pool.push("mafia");
   }
   while (pool.length > aliveCount) {
-    const idx = pool.findIndex((role) => role !== "mafia");
-    if (idx < 0) break;
-    pool.splice(idx, 1);
+    const idx = pool.findIndex((role) => role === "doctor" || role === "police");
+    if (idx >= 0) {
+      pool.splice(idx, 1);
+      continue;
+    }
+    const jokerIdx = pool.findIndex((role) => role === "joker");
+    if (jokerIdx >= 0 && (!keepAtLeastOneJoker || jokerCountInPool() > 1)) {
+      pool.splice(jokerIdx, 1);
+      continue;
+    }
+    const fallbackIdx = pool.findIndex((role) => role !== "mafia");
+    if (fallbackIdx >= 0) {
+      pool.splice(fallbackIdx, 1);
+      continue;
+    }
+    break;
   }
   return pool;
 }
@@ -1441,7 +1459,19 @@ wss.on("connection", (ws) => {
         return;
       }
       if (room.game.mode === MODE_MORAL_ROULETTE) {
-        safeSend(ws, { type: "error", message: "Moral Roulette 모드에서는 직업 수가 생존 인원에 따라 자동 배정됩니다." });
+        const requestedJoker = Number(packet?.roleCounts?.joker);
+        if (!Number.isFinite(requestedJoker)) {
+          safeSend(ws, { type: "error", message: "조커 인원 값이 올바르지 않습니다." });
+          return;
+        }
+        const counts = normalizeRoleCounts(room.game.mode, room.game.roleCounts || {});
+        counts.joker = Math.max(0, Math.min(MAX_ROOM_PLAYERS, Math.floor(requestedJoker)));
+        room.game.roleCounts = counts;
+        broadcastRoomUpdate(room);
+        broadcastChat(room, {
+          system: true,
+          message: `Moral Roulette 설정: 조커 인원 ${counts.joker}명으로 변경되었습니다.`,
+        });
         return;
       }
 
@@ -1472,7 +1502,7 @@ wss.on("connection", (ws) => {
 
       const configured = effectiveRoleCounts(room, room.players.size);
       const configuredTotal = configured.mafia + configured.doctor + configured.police + configured.joker;
-      if (configuredTotal > room.players.size) {
+      if (room.game.mode !== MODE_MORAL_ROULETTE && configuredTotal > room.players.size) {
         safeSend(ws, {
           type: "error",
           message: `직업 수 합계(${configuredTotal})가 현재 인원(${room.players.size})보다 많습니다.`,

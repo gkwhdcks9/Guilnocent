@@ -636,16 +636,13 @@ class _GameHomePageState extends State<GameHomePage> {
     final room = _room;
     if (room == null) return;
     if (room.game.inProgress) return;
-    if (room.game.mode == 'moral_roulette') return;
+    if (room.game.mode == 'moral_roulette' && roleKey != 'joker') return;
     final current = room.game.roleCounts[roleKey] ?? 0;
     final next = (current + delta).clamp(0, 12);
     if (roleKey == 'mafia' && next < 1) return;
 
     final updated = Map<String, int>.from(room.game.roleCounts);
     updated[roleKey] = next;
-    if (room.game.mode == 'original') {
-      updated['joker'] = 0;
-    }
     _send({'type': 'set_role_counts', 'roleCounts': updated});
   }
 
@@ -1293,7 +1290,9 @@ class _GameHomePageState extends State<GameHomePage> {
                                               ),
                                             ),
                                             IconButton(
-                                              onPressed: (_isHost && !currentRoom.game.inProgress && currentRoom.game.mode != 'moral_roulette' && !(currentRoom.game.mode == 'original' && roleKey == 'joker'))
+                                              onPressed: (_isHost &&
+                                                      !currentRoom.game.inProgress &&
+                                                      (currentRoom.game.mode != 'moral_roulette' || roleKey == 'joker'))
                                                   ? () {
                                                       _adjustRoleCount(roleKey, -1);
                                                       setDialogState(() {});
@@ -1309,7 +1308,9 @@ class _GameHomePageState extends State<GameHomePage> {
                                               ),
                                             ),
                                             IconButton(
-                                              onPressed: (_isHost && !currentRoom.game.inProgress && currentRoom.game.mode != 'moral_roulette' && !(currentRoom.game.mode == 'original' && roleKey == 'joker'))
+                                              onPressed: (_isHost &&
+                                                      !currentRoom.game.inProgress &&
+                                                      (currentRoom.game.mode != 'moral_roulette' || roleKey == 'joker'))
                                                   ? () {
                                                       _adjustRoleCount(roleKey, 1);
                                                       setDialogState(() {});
@@ -1327,7 +1328,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                       ),
                                     if (_isHost && currentRoom.game.mode == 'moral_roulette')
                                       Text(
-                                        'Moral Roulette는 생존 인원에 따라 직업 수가 자동으로 결정됩니다.',
+                                        'Moral Roulette는 마피아/의사/경찰은 자동이며, 조커 인원은 수동 조정할 수 있습니다.',
                                         style: Theme.of(context).textTheme.bodySmall,
                                       ),
                                   ],
@@ -1797,9 +1798,9 @@ class _GameHomePageState extends State<GameHomePage> {
 
   Widget _panel({required Widget child}) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 6),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         child: child,
       ),
     );
@@ -1809,9 +1810,9 @@ class _GameHomePageState extends State<GameHomePage> {
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: 28,
+        height: 24,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 10, 6),
+          padding: const EdgeInsets.fromLTRB(8, 0, 10, 4),
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(
@@ -1849,6 +1850,11 @@ class _GameHomePageState extends State<GameHomePage> {
       vertical: scaled(3, min: 2, max: 5),
     );
     final quickEmojiFontSize = scaled(16, min: 14, max: 18);
+    final compactControlHeight = scaled(34, min: 30, max: 36);
+    final compactButtonPadding = EdgeInsets.symmetric(
+      horizontal: scaled(8, min: 6, max: 10),
+      vertical: scaled(4, min: 2, max: 5),
+    );
 
     if (_serverEndpoint == null && !_isConnecting && _myPlayerId == null) {
       return Scaffold(
@@ -1872,36 +1878,51 @@ class _GameHomePageState extends State<GameHomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('서버 선택', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       const Text('플레이 방식을 선택하세요.'),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: _selectPublicServer,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size.fromHeight(compactControlHeight),
+                            padding: compactButtonPadding,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           icon: const Icon(Icons.public),
                           label: const Text('공용 서버로 플레이'),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       TextField(
                         controller: _lanServerController,
                         decoration: const InputDecoration(labelText: 'LAN 주소 (예: ws://192.168.0.10:8080)'),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: _isDiscoveringLan ? null : _discoverAndSelectLanServer,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size.fromHeight(compactControlHeight),
+                            padding: compactButtonPadding,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           icon: const Icon(Icons.wifi_tethering),
                           label: Text(_isDiscoveringLan ? 'LAN 탐색 중...' : 'LAN 자동 탐색 후 연결'),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           onPressed: _selectLanServer,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: Size.fromHeight(compactControlHeight),
+                            padding: compactButtonPadding,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           icon: const Icon(Icons.router),
                           label: const Text('입력한 LAN 주소로 연결'),
                         ),
@@ -1960,9 +1981,9 @@ class _GameHomePageState extends State<GameHomePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.wifi_off, size: 34),
-                    const SizedBox(height: 6),
-                    const Text('서버 연결 실패'),
                     const SizedBox(height: 4),
+                    const Text('서버 연결 실패'),
+                    const SizedBox(height: 3),
                     SizedBox(
                       width: statusTextWidth,
                       child: Text(
@@ -1970,7 +1991,7 @@ class _GameHomePageState extends State<GameHomePage> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     SizedBox(
                       width: statusTextWidth,
                       child: Text(
@@ -1979,9 +2000,14 @@ class _GameHomePageState extends State<GameHomePage> {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     ElevatedButton.icon(
                       onPressed: _connect,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size.fromHeight(compactControlHeight),
+                        padding: compactButtonPadding,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       icon: const Icon(Icons.refresh),
                       label: const Text('다시 연결'),
                     ),
@@ -2070,12 +2096,12 @@ class _GameHomePageState extends State<GameHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _sectionTitle(context, '입장 허브', icon: Icons.vpn_key),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       '코드를 입력해 입장하거나, 자동 코드로 빠르게 방을 만들 수 있습니다.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Expanded(
@@ -2088,21 +2114,31 @@ class _GameHomePageState extends State<GameHomePage> {
                         const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: _connected ? _applyNickname : null,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(0, compactControlHeight),
+                            padding: compactButtonPadding,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           child: const Text('변경'),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     TextField(
                       controller: _roomController,
                       decoration: const InputDecoration(labelText: '방 코드 입력'),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Expanded(
                           child: ElevatedButton(
                             onPressed: _connected ? _joinRoom : null,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: Size.fromHeight(compactControlHeight),
+                              padding: compactButtonPadding,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             child: const Text('코드로 입장'),
                           ),
                         ),
@@ -2110,16 +2146,26 @@ class _GameHomePageState extends State<GameHomePage> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: _connected ? _createRoom : null,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: Size.fromHeight(compactControlHeight),
+                              padding: compactButtonPadding,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             child: const Text('코드로 생성'),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _connected ? _createAutoRoom : null,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size.fromHeight(compactControlHeight),
+                          padding: compactButtonPadding,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         icon: const Icon(Icons.flash_on),
                         label: const Text('빠른 방 만들기 (자동 코드)'),
                       ),
@@ -2141,7 +2187,7 @@ class _GameHomePageState extends State<GameHomePage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     TextField(
                       controller: _roomSearchController,
                       onChanged: (_) => setState(() {}),
@@ -2150,9 +2196,10 @@ class _GameHomePageState extends State<GameHomePage> {
                         prefixIcon: Icon(Icons.search),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     SwitchListTile(
                       dense: true,
+                      visualDensity: const VisualDensity(vertical: -3),
                       contentPadding: EdgeInsets.zero,
                       value: _waitingOnly,
                       onChanged: (value) {
@@ -2171,8 +2218,8 @@ class _GameHomePageState extends State<GameHomePage> {
                       ),
                     for (final roomInfo in filteredRooms)
                       Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        padding: const EdgeInsets.all(8),
+                        margin: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           color: const Color(0x331B1D25),
@@ -2195,6 +2242,11 @@ class _GameHomePageState extends State<GameHomePage> {
                             ),
                             ElevatedButton(
                               onPressed: roomInfo.inProgress ? null : () => _joinRoomById(roomInfo.id),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(0, compactControlHeight),
+                                padding: compactButtonPadding,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                               child: Text(roomInfo.inProgress ? '진행중' : '입장'),
                             ),
                           ],
@@ -2210,13 +2262,18 @@ class _GameHomePageState extends State<GameHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _sectionTitle(context, '채팅', icon: Icons.chat_bubble),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
                         if (_isHost && !(_room?.game.inProgress ?? false))
                           Expanded(
                             child: ElevatedButton(
                               onPressed: (_room?.game.canStart ?? false) ? () => _send({'type': 'start_game'}) : null,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size.fromHeight(compactControlHeight),
+                                padding: compactButtonPadding,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                               child: const Text('게임 시작'),
                             ),
                           ),
@@ -2226,18 +2283,28 @@ class _GameHomePageState extends State<GameHomePage> {
                             onPressed: _connected && _inRoom && !(_room?.game.inProgress ?? false)
                                 ? () => _send({'type': 'leave_room'})
                                 : null,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: Size.fromHeight(compactControlHeight),
+                              padding: compactButtonPadding,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             child: const Text('방 나가기'),
                           ),
                         ),
                       ],
                     ),
                     if (_room?.game.phase == 'execution_vote') ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Row(
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: !_isMyEliminated ? () => _castExecutionVote(true) : null,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size.fromHeight(compactControlHeight),
+                                padding: compactButtonPadding,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                               icon: const Icon(Icons.how_to_vote),
                               label: const Text('찬성'),
                             ),
@@ -2246,6 +2313,11 @@ class _GameHomePageState extends State<GameHomePage> {
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: !_isMyEliminated ? () => _castExecutionVote(false) : null,
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: Size.fromHeight(compactControlHeight),
+                                padding: compactButtonPadding,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                               icon: const Icon(Icons.block),
                               label: const Text('반대'),
                             ),
@@ -2254,13 +2326,18 @@ class _GameHomePageState extends State<GameHomePage> {
                       ),
                     ],
                     if (_room?.game.phase == 'mafia_decision') ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       if (_myRole == 'mafia' && !_isMyEliminated)
                         Row(
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: () => _setMafiaContinue(true),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: Size.fromHeight(compactControlHeight),
+                                  padding: compactButtonPadding,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
                                 icon: const Icon(Icons.play_arrow),
                                 label: const Text('계속 진행'),
                               ),
@@ -2269,6 +2346,11 @@ class _GameHomePageState extends State<GameHomePage> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () => _setMafiaContinue(false),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: Size.fromHeight(compactControlHeight),
+                                  padding: compactButtonPadding,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
                                 icon: const Icon(Icons.stop_circle_outlined),
                                 label: const Text('중지'),
                               ),
@@ -2281,7 +2363,7 @@ class _GameHomePageState extends State<GameHomePage> {
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                     ],
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
                         Expanded(
