@@ -89,6 +89,8 @@ class _GameHomePageState extends State<GameHomePage> {
   String _settingsTab = 'game';
   final Set<String> _sessionResetRoomIds = <String>{};
   final Set<int> _loggedRoleDescriptionDays = <int>{};
+  VoidCallback? _refreshSettingsModal;
+  VoidCallback? _refreshPlayersModal;
 
   bool get _connected => _channel != null;
   bool get _inRoom => _room != null;
@@ -437,6 +439,8 @@ class _GameHomePageState extends State<GameHomePage> {
           _appendRoleDescriptionForDay(room.game.day, _myRole, fakeRole: _jokerFakeRole);
         }
       });
+      _refreshSettingsModal?.call();
+      _refreshPlayersModal?.call();
       _resetRoomSettingsForSessionIfNeeded(room);
       return;
     }
@@ -860,6 +864,48 @@ class _GameHomePageState extends State<GameHomePage> {
     );
   }
 
+  Widget _modalSwitchRow(BuildContext dialogContext, {required String current}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          TextButton.icon(
+            onPressed: current == 'players'
+                ? null
+                : () {
+                    Navigator.of(dialogContext).pop();
+                    Future.microtask(_showPlayersModal);
+                  },
+            icon: const Icon(Icons.groups_2, size: 16),
+            label: const Text('유저목록'),
+          ),
+          TextButton.icon(
+            onPressed: current == 'help'
+                ? null
+                : () {
+                    Navigator.of(dialogContext).pop();
+                    Future.microtask(_showRulesHelpModal);
+                  },
+            icon: const Icon(Icons.help_outline, size: 16),
+            label: const Text('도움말'),
+          ),
+          TextButton.icon(
+            onPressed: current == 'settings'
+                ? null
+                : () {
+                    Navigator.of(dialogContext).pop();
+                    Future.microtask(_showGameSettingsModal);
+                  },
+            icon: const Icon(Icons.settings, size: 16),
+            label: const Text('게임설정'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showRulesHelpModal() {
     showDialog<void>(
       context: context,
@@ -883,6 +929,7 @@ class _GameHomePageState extends State<GameHomePage> {
                     length: 3,
                     child: Column(
                       children: [
+                        _modalSwitchRow(context, current: 'help'),
                         Container(
                           color: const Color(0x551B1D25),
                           child: const TabBar(
@@ -975,6 +1022,10 @@ class _GameHomePageState extends State<GameHomePage> {
         String settingsTab = _settingsTab;
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            _refreshSettingsModal = () {
+              if (!mounted || _isDisposing) return;
+              setDialogState(() {});
+            };
             final currentRoom = _room;
             if (currentRoom == null) {
               return Dialog(
@@ -991,7 +1042,12 @@ class _GameHomePageState extends State<GameHomePage> {
                           color: const Color(0xCC11131B),
                           border: Border.all(color: const Color(0x44FFFFFF)),
                         ),
-                        child: const Center(child: Text('방 정보가 없습니다.')),
+                        child: Column(
+                          children: [
+                            _modalSwitchRow(context, current: 'settings'),
+                            const Expanded(child: Center(child: Text('방 정보가 없습니다.'))),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1016,6 +1072,7 @@ class _GameHomePageState extends State<GameHomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          _modalSwitchRow(context, current: 'settings'),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
@@ -1062,14 +1119,20 @@ class _GameHomePageState extends State<GameHomePage> {
                                           label: const Text('오리지널 마피아'),
                                           selected: currentRoom.game.mode == 'original',
                                           onSelected: (_isHost && !currentRoom.game.inProgress)
-                                              ? (_) => _setGameMode('original')
+                                              ? (_) {
+                                                  _setGameMode('original');
+                                                  setDialogState(() {});
+                                                }
                                               : null,
                                         ),
                                         ChoiceChip(
                                           label: const Text('Moral Roulette'),
                                           selected: currentRoom.game.mode == 'moral_roulette',
                                           onSelected: (_isHost && !currentRoom.game.inProgress)
-                                              ? (_) => _setGameMode('moral_roulette')
+                                              ? (_) {
+                                                  _setGameMode('moral_roulette');
+                                                  setDialogState(() {});
+                                                }
                                               : null,
                                         ),
                                       ],
@@ -1093,7 +1156,10 @@ class _GameHomePageState extends State<GameHomePage> {
                                             ),
                                             IconButton(
                                               onPressed: (_isHost && !currentRoom.game.inProgress && currentRoom.game.mode != 'moral_roulette' && !(currentRoom.game.mode == 'original' && roleKey == 'joker'))
-                                                  ? () => _adjustRoleCount(roleKey, -1)
+                                                  ? () {
+                                                      _adjustRoleCount(roleKey, -1);
+                                                      setDialogState(() {});
+                                                    }
                                                   : null,
                                               icon: const Icon(Icons.remove_circle_outline),
                                             ),
@@ -1106,7 +1172,10 @@ class _GameHomePageState extends State<GameHomePage> {
                                             ),
                                             IconButton(
                                               onPressed: (_isHost && !currentRoom.game.inProgress && currentRoom.game.mode != 'moral_roulette' && !(currentRoom.game.mode == 'original' && roleKey == 'joker'))
-                                                  ? () => _adjustRoleCount(roleKey, 1)
+                                                  ? () {
+                                                      _adjustRoleCount(roleKey, 1);
+                                                      setDialogState(() {});
+                                                    }
                                                   : null,
                                               icon: const Icon(Icons.add_circle_outline),
                                             ),
@@ -1156,6 +1225,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                                       } else {
                                                         _setScoreSettings(mafiaJoker0: next);
                                                       }
+                                                      setDialogState(() {});
                                                     }
                                                   : null,
                                               icon: const Icon(Icons.remove_circle_outline),
@@ -1178,6 +1248,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                                       } else {
                                                         _setScoreSettings(mafiaJoker0: next);
                                                       }
+                                                      setDialogState(() {});
                                                     }
                                                   : null,
                                               icon: const Icon(Icons.add_circle_outline),
@@ -1204,6 +1275,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                               ? () {
                                                   final current = currentRoom.game.scoreSettings['citizenEndMultiplier'] ?? 2;
                                                   _setScoreSettings(citizenEndMultiplier: (current - 1).clamp(0, 99));
+                                                  setDialogState(() {});
                                                 }
                                               : null,
                                           icon: const Icon(Icons.remove_circle_outline),
@@ -1220,6 +1292,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                               ? () {
                                                   final current = currentRoom.game.scoreSettings['citizenEndMultiplier'] ?? 2;
                                                   _setScoreSettings(citizenEndMultiplier: (current + 1).clamp(0, 99));
+                                                  setDialogState(() {});
                                                 }
                                               : null,
                                           icon: const Icon(Icons.add_circle_outline),
@@ -1265,7 +1338,127 @@ class _GameHomePageState extends State<GameHomePage> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      _refreshSettingsModal = null;
+    });
+  }
+
+  void _showPlayersModal() {
+    if (_room == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('방에 입장한 뒤 유저 목록을 확인할 수 있습니다.'),
+            duration: Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            _refreshPlayersModal = () {
+              if (!mounted || _isDisposing) return;
+              setDialogState(() {});
+            };
+            final currentRoom = _room;
+            final players = currentRoom?.players ?? const <PlayerInfo>[];
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Center(
+                child: FractionallySizedBox(
+                  widthFactor: 0.9,
+                  heightFactor: 0.58,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xCC11131B),
+                        border: Border.all(color: const Color(0x44FFFFFF)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _modalSwitchRow(context, current: 'players'),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                            child: _sectionTitle(context, '유저 목록 (투표 선택)', icon: Icons.groups),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                              child: GridView.builder(
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 4,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                  mainAxisExtent: 72,
+                                ),
+                                itemCount: players.length,
+                                itemBuilder: (context, index) {
+                                  final player = players[index];
+                                  final eliminated = currentRoom?.game.eliminatedIds.contains(player.id) ?? false;
+                                  final canVote = (!_isMyEliminated || player.id == _myPlayerId) && !eliminated;
+                                  final isMafiaMate = _myRole == 'mafia' && _mafiaTeammateIds.contains(player.id);
+                                  final label = '${player.name}${player.id == _myPlayerId ? ' (나)' : ''}${eliminated ? ' (탈락)' : ''}';
+
+                                  return FilledButton.tonal(
+                                    onPressed: canVote
+                                        ? () {
+                                            Navigator.of(context).pop();
+                                            _onPlayerSelect(player.id);
+                                          }
+                                        : null,
+                                    style: FilledButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    child: Text(
+                                      label,
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: isMafiaMate ? Colors.redAccent : null,
+                                        fontWeight: isMafiaMate ? FontWeight.w700 : FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close),
+                                label: const Text('닫기'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      _refreshPlayersModal = null;
+    });
   }
 
   Widget _panel({required Widget child}) {
@@ -1451,7 +1644,6 @@ class _GameHomePageState extends State<GameHomePage> {
     final roleColor = _myRole == 'mafia'
         ? Theme.of(context).colorScheme.error
         : Theme.of(context).colorScheme.tertiary;
-    final canEditNickname = !(_room?.game.inProgress ?? false);
     final canAct = !_isMyEliminated;
     final isAbilityPhase = _room?.game.inProgress == true && _room?.game.phase == 'ability';
     final canUseMafiaNightChat = isAbilityPhase && _myRole == 'mafia' && !_isMyEliminated;
@@ -1469,8 +1661,16 @@ class _GameHomePageState extends State<GameHomePage> {
       bottomNavigationBar: _creatorFooter(context),
       appBar: AppBar(
         centerTitle: false,
-        title: const Text('GUILNOCENT'),
+        title: Text(
+          'GUILNOCENT',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
         actions: [
+          IconButton(
+            onPressed: _showPlayersModal,
+            tooltip: '유저 목록',
+            icon: const Icon(Icons.groups_2),
+          ),
           IconButton(
             onPressed: _showRulesHelpModal,
             tooltip: '게임 규칙/직업 설명',
@@ -1516,6 +1716,23 @@ class _GameHomePageState extends State<GameHomePage> {
                     Text(
                       '코드를 입력해 입장하거나, 자동 코드로 빠르게 방을 만들 수 있습니다.',
                       style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _nameController,
+                            onSubmitted: (_) => _applyNickname(),
+                            decoration: const InputDecoration(labelText: '닉네임 입력(입장 전 변경)'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _connected ? _applyNickname : null,
+                          child: const Text('변경'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -1737,61 +1954,8 @@ class _GameHomePageState extends State<GameHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _sectionTitle(context, '닉네임', icon: Icons.badge),
+                    _sectionTitle(context, '행동', icon: Icons.touch_app),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _nameController,
-                            enabled: canEditNickname,
-                            onSubmitted: (_) => _applyNickname(),
-                            decoration: const InputDecoration(labelText: '닉네임 입력'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: canEditNickname ? _applyNickname : null,
-                          child: const Text('변경'),
-                        ),
-                      ],
-                    ),
-                    if (!canEditNickname) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        '게임 진행 중에는 닉네임을 변경할 수 없습니다.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    _sectionTitle(context, '유저 목록 (클릭 선택)', icon: Icons.groups),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: players
-                          .map(
-                            (player) {
-                              final eliminated = room!.game.eliminatedIds.contains(player.id);
-                              final isMafiaMate = _myRole == 'mafia' && _mafiaTeammateIds.contains(player.id);
-                              return ActionChip(
-                                avatar: Icon(
-                                  player.id == _myPlayerId ? Icons.person : Icons.person_outline,
-                                  size: 16,
-                                ),
-                                onPressed: (!canAct || eliminated) ? null : () => _onPlayerSelect(player.id),
-                                label: Text(
-                                  '${player.name}${player.id == _myPlayerId ? ' (나)' : ''}${eliminated ? ' (탈락)' : ''}',
-                                  style: TextStyle(
-                                    color: isMafiaMate ? Colors.redAccent : null,
-                                    fontWeight: isMafiaMate ? FontWeight.w700 : FontWeight.w400,
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                          .toList(),
-                    ),
                     if (room!.game.phase == 'voting') ...[
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
@@ -1877,7 +2041,7 @@ class _GameHomePageState extends State<GameHomePage> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      height: 260,
+                      height: MediaQuery.of(context).size.height * 0.62,
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: const Color(0xFF12141C),
