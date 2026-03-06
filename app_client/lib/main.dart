@@ -583,6 +583,17 @@ class _GameHomePageState extends State<GameHomePage> {
     _send({'type': 'set_vote', 'targetId': targetId});
   }
 
+  void _castExecutionVote(bool approve) {
+    _send({'type': 'set_execution_vote', 'approve': approve});
+  }
+
+  void _setMafiaContinue(bool shouldContinue) {
+    _send({
+      'type': 'mafia_continue',
+      'decision': shouldContinue ? 'continue' : 'stop',
+    });
+  }
+
   void _setGameMode(String mode) {
     _send({'type': 'set_game_mode', 'mode': mode});
   }
@@ -758,6 +769,13 @@ class _GameHomePageState extends State<GameHomePage> {
     return '미정';
   }
 
+  String _displayRoleLabelInGame() {
+    if (_myRole == 'joker' && _jokerFakeRole != null && _jokerFakeRole!.isNotEmpty) {
+      return _roleLabel(_jokerFakeRole!);
+    }
+    return _roleLabel(_myRole);
+  }
+
   String _roleDescription(String role, {String? fakeRole}) {
     if (role == 'mafia') {
       return '역할: 마피아 · 밤에 플레이어 1명을 탈락 대상으로 지정할 수 있습니다.';
@@ -773,6 +791,55 @@ class _GameHomePageState extends State<GameHomePage> {
       return '역할: 조커(시민 편) · 위장 직업($masked)처럼 보이지만 능력은 실제로 발동되지 않습니다.';
     }
     return '역할: 시민 · 특별한 밤 능력은 없습니다.';
+  }
+
+  InlineSpan _chatMessageSpan(BuildContext context, ChatItem item) {
+    final message = item.message;
+    final defaultColor = Theme.of(context).textTheme.bodyMedium?.color;
+    if (message.isEmpty) {
+      return TextSpan(text: '', style: TextStyle(color: defaultColor));
+    }
+    if (item.highlightDanger) {
+      return TextSpan(
+        text: message,
+        style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
+      );
+    }
+
+    final pattern = RegExp('탈락|처형|생존|치료로 생존');
+    final spans = <TextSpan>[];
+    int cursor = 0;
+    for (final match in pattern.allMatches(message)) {
+      if (match.start > cursor) {
+        spans.add(
+          TextSpan(
+            text: message.substring(cursor, match.start),
+            style: TextStyle(color: defaultColor),
+          ),
+        );
+      }
+      final token = message.substring(match.start, match.end);
+      final isSurvive = token.contains('생존');
+      spans.add(
+        TextSpan(
+          text: token,
+          style: TextStyle(
+            color: isSurvive ? Colors.lightBlueAccent : Colors.redAccent,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+      cursor = match.end;
+    }
+    if (cursor < message.length) {
+      spans.add(
+        TextSpan(
+          text: message.substring(cursor),
+          style: TextStyle(color: defaultColor),
+        ),
+      );
+    }
+    return TextSpan(children: spans);
   }
 
   Widget _sectionTitle(BuildContext context, String title, {IconData? icon}) {
@@ -1662,9 +1729,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                       Chip(
                                         avatar: Icon(Icons.person, size: 16, color: roleColor),
                                         label: Text(
-                                          _myRole == 'joker' && _jokerFakeRole != null
-                                              ? '내 역할 조커 (위장 ${_roleLabel(_jokerFakeRole!)})'
-                                              : '내 역할 ${_roleLabel(_myRole)}',
+                                          '내 역할 ${_displayRoleLabelInGame()}',
                                         ),
                                       ),
                                       Chip(
@@ -2144,6 +2209,56 @@ class _GameHomePageState extends State<GameHomePage> {
                         ),
                       ],
                     ),
+                    if (_room?.game.phase == 'execution_vote') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: !_isMyEliminated ? () => _castExecutionVote(true) : null,
+                              icon: const Icon(Icons.how_to_vote),
+                              label: const Text('찬성'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: !_isMyEliminated ? () => _castExecutionVote(false) : null,
+                              icon: const Icon(Icons.block),
+                              label: const Text('반대'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (_room?.game.phase == 'mafia_decision') ...[
+                      const SizedBox(height: 8),
+                      if (_myRole == 'mafia' && !_isMyEliminated)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _setMafiaContinue(true),
+                                icon: const Icon(Icons.play_arrow),
+                                label: const Text('계속 진행'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _setMafiaContinue(false),
+                                icon: const Icon(Icons.stop_circle_outlined),
+                                label: const Text('중지'),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Text(
+                          '마피아 진행 선택 대기 중입니다.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                    ],
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -2177,9 +2292,7 @@ class _GameHomePageState extends State<GameHomePage> {
                               style: Theme.of(context).textTheme.labelSmall,
                             ),
                             Text(
-                              _myRole == 'joker' && _jokerFakeRole != null
-                                  ? '내 역할 조커(위장 ${_roleLabel(_jokerFakeRole!)})'
-                                  : '내 역할 ${_roleLabel(_myRole)}',
+                              '내 역할 ${_displayRoleLabelInGame()}',
                               style: Theme.of(context).textTheme.labelSmall,
                               textAlign: TextAlign.right,
                             ),
@@ -2198,7 +2311,7 @@ class _GameHomePageState extends State<GameHomePage> {
                       ),
                     const SizedBox(height: 8),
                     Container(
-                      height: MediaQuery.of(context).size.height * 0.74,
+                      height: MediaQuery.of(context).size.height * 0.50,
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: const Color(0xFF12141C),
@@ -2257,22 +2370,25 @@ class _GameHomePageState extends State<GameHomePage> {
                                         borderRadius: BorderRadius.circular(10),
                                         child: Image.asset(
                                           'image/${item.imageAsset!}',
-                                          height: 72,
+                                          height: 120,
                                           fit: BoxFit.contain,
                                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                                         ),
                                       ),
                                     ),
                                   ],
-                                  Text(
-                                    item.message,
-                                    style: item.isEmoji
-                                        ? Theme.of(context).textTheme.headlineSmall
-                                        : Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                              color: item.highlightDanger ? Colors.redAccent : null,
-                                              fontWeight: item.highlightDanger ? FontWeight.w700 : null,
+                                  if (item.message.isNotEmpty)
+                                    (item.isEmoji
+                                        ? Text(
+                                            item.message,
+                                            style: Theme.of(context).textTheme.headlineSmall,
+                                          )
+                                        : RichText(
+                                            text: TextSpan(
+                                              style: Theme.of(context).textTheme.bodyMedium,
+                                              children: [_chatMessageSpan(context, item)],
                                             ),
-                                  ),
+                                          )),
                                   if (item.ts != null) ...[
                                     const SizedBox(height: 2),
                                     Text(

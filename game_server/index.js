@@ -601,7 +601,15 @@ function alivePlayerIds(room) {
   return [...room.players].filter((playerId) => !isEliminated(room, playerId));
 }
 
-function scoreSummaryLines(room) {
+function roleLabelForSummary(role) {
+  if (role === "mafia") return "마피아";
+  if (role === "doctor") return "의사";
+  if (role === "police") return "경찰";
+  if (role === "joker") return "조커";
+  return "시민";
+}
+
+function scoreSummaryLines(room, finalRoles = {}) {
   const list = [...room.players]
     .map((playerId) => players.get(playerId))
     .filter(Boolean)
@@ -611,7 +619,10 @@ function scoreSummaryLines(room) {
     return [];
   }
 
-  return list.map((player, index) => `${index + 1}. ${player.name} - ${player.score}점`);
+  return list.map((player, index) => {
+    const role = finalRoles[player.id] || "citizen";
+    return `${index + 1}. ${player.name} (${roleLabelForSummary(role)}) - ${player.score}점`;
+  });
 }
 
 function assignRoles(room) {
@@ -718,8 +729,12 @@ function resolveNightAbilities(room) {
   if (healTargetId && healTargetId === killTargetId) {
     broadcastChat(room, {
       system: true,
-      message: `밤 능력 결과: ${targetName}님이 의사의 치료로 생존했습니다.`,
+      message: "",
       imageAsset: "doctor_success.png",
+    });
+    broadcastChat(room, {
+      system: true,
+      message: `밤 능력 결과: ${targetName}님이 의사의 치료로 생존했습니다.`,
     });
     return;
   }
@@ -728,8 +743,12 @@ function resolveNightAbilities(room) {
   markMoralRouletteMafiaDeath(room, killTargetId);
   broadcastChat(room, {
     system: true,
-    message: `밤 능력 결과: ${targetName}님이 탈락했습니다.`,
+    message: "",
     imageAsset: "mafia.png",
+  });
+  broadcastChat(room, {
+    system: true,
+    message: `밤 능력 결과: ${targetName}님이 탈락했습니다.`,
   });
 }
 
@@ -1066,7 +1085,7 @@ function finishGame(room, reason) {
     });
   }
   if (room.game.mode === MODE_MORAL_ROULETTE) {
-    const summary = scoreSummaryLines(room);
+    const summary = scoreSummaryLines(room, finalRoles);
     if (summary.length > 0) {
       broadcastChat(room, {
         system: true,
@@ -1718,18 +1737,15 @@ wss.on("connection", (ws) => {
         }
         const targetName = players.get(targetId)?.name || targetId;
         const apparentRole = apparentRoleOf(room, targetId);
-        const apparentLabel = apparentRole === "mafia"
-          ? "마피아"
-          : apparentRole === "doctor"
-            ? "의사"
-            : apparentRole === "police"
-              ? "경찰"
-              : "시민";
-        sendPrivate(player.id, `${targetName}님의 직업 조사 결과: ${apparentLabel}`, room.game.day, { danger: true });
+        const isMafia = apparentRole === "mafia";
+        const resultText = isMafia
+          ? `${targetName}님의 조사 결과: 마피아입니다.`
+          : `${targetName}님의 조사 결과: 마피아가 아닙니다.`;
+        sendPrivate(player.id, resultText, room.game.day, { danger: isMafia });
         sendPrivateSystemChat(player.id, {
-          message: `${targetName}님의 직업 조사 결과: ${apparentLabel}`,
+          message: resultText,
           imageAsset: "police.png",
-          highlightDanger: apparentRole === "mafia",
+          highlightDanger: isMafia,
         });
         room.game.abilityUsed[player.id] = true;
         return;
@@ -1803,6 +1819,7 @@ wss.on("connection", (ws) => {
           sendPrivate(player.id, `${targetName}님을 밤 탈락 대상으로 지정했습니다. (조커: 실제 효과 없음)`, room.game.day, { danger: true });
           sendPrivateSystemChat(player.id, {
             message: `${targetName}님을 밤 탈락 대상으로 지정했습니다. (조커: 실제 효과 없음)`,
+            imageAsset: "mafia.png",
             highlightDanger: true,
           });
           return;
@@ -1817,6 +1834,7 @@ wss.on("connection", (ws) => {
           sendPrivate(player.id, `${targetName}님을 치료 대상으로 지정했습니다. (조커: 실제 효과 없음)`, room.game.day, { danger: true });
           sendPrivateSystemChat(player.id, {
             message: `${targetName}님을 치료 대상으로 지정했습니다. (조커: 실제 효과 없음)`,
+            imageAsset: "doctor_success.png",
             highlightDanger: true,
           });
           return;
@@ -1826,6 +1844,7 @@ wss.on("connection", (ws) => {
           sendPrivate(player.id, `${targetName}님을 조사했습니다. (조커: 실제 효과 없음)`, room.game.day, { danger: true });
           sendPrivateSystemChat(player.id, {
             message: `${targetName}님을 조사했습니다. (조커: 실제 효과 없음)`,
+            imageAsset: "police.png",
             highlightDanger: true,
           });
           return;
