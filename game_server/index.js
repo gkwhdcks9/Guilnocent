@@ -446,7 +446,8 @@ function rolePoolForDay(room, aliveCount) {
 
 function moralRouletteMafiaSurvivalScore(room) {
   const settings = normalizeScoreSettings(room.game.scoreSettings || {});
-  const jokerCount = moralRouletteJokerCountForAlive(alivePlayerIds(room).length);
+  const aliveCount = alivePlayerIds(room).length;
+  const jokerCount = effectiveRoleCounts(room, aliveCount).joker;
   if (jokerCount >= 2) return settings.mafiaJoker2Plus;
   if (jokerCount === 1) return settings.mafiaJoker1;
   return settings.mafiaJoker0;
@@ -981,6 +982,13 @@ function resolveVotingAndAdvance(room) {
     broadcastChat(room, { system: true, message: "투표가 모두 기권되어 마피아가 생존했습니다." });
   }
 
+  let abstainCount = 0;
+  for (const targetId of votes) {
+    if (!targetId) {
+      abstainCount += 1;
+    }
+  }
+
   const countMap = {};
   for (const targetId of votes) {
     if (!targetId) continue;
@@ -999,7 +1007,9 @@ function resolveVotingAndAdvance(room) {
   }
 
   let candidateId = null;
-  if (winners.length === 1) {
+  if (abstainCount > maxCount) {
+    candidateId = null;
+  } else if (winners.length === 1) {
     candidateId = winners[0];
   }
 
